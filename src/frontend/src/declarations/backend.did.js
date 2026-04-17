@@ -8,10 +8,96 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const idlService = IDL.Service({});
+export const SessionToken = IDL.Text;
+export const SimpleResult = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
+export const UserId = IDL.Nat;
+export const Timestamp = IDL.Int;
+export const Role = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
+export const UserInfo = IDL.Record({
+  'id' : UserId,
+  'username' : IDL.Text,
+  'createdAt' : Timestamp,
+  'role' : Role,
+});
+export const CreateUserResult = IDL.Variant({
+  'ok' : UserInfo,
+  'err' : IDL.Text,
+});
+export const LoginResult = IDL.Variant({
+  'ok' : SessionToken,
+  'err' : IDL.Text,
+});
+
+export const idlService = IDL.Service({
+  'changePassword' : IDL.Func(
+      [SessionToken, IDL.Text, IDL.Text],
+      [SimpleResult],
+      [],
+    ),
+  'createUser' : IDL.Func(
+      [SessionToken, IDL.Text, IDL.Text],
+      [CreateUserResult],
+      [],
+    ),
+  'deleteUser' : IDL.Func([SessionToken, IDL.Text], [SimpleResult], []),
+  'getCurrentUser' : IDL.Func([SessionToken], [IDL.Opt(UserInfo)], []),
+  'listUsers' : IDL.Func(
+      [SessionToken],
+      [IDL.Variant({ 'ok' : IDL.Vec(UserInfo), 'err' : IDL.Text })],
+      [],
+    ),
+  'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+  'logout' : IDL.Func([SessionToken], [SimpleResult], []),
+  'updateUser' : IDL.Func(
+      [SessionToken, IDL.Text, IDL.Text, IDL.Text],
+      [SimpleResult],
+      [],
+    ),
+});
 
 export const idlInitArgs = [];
 
-export const idlFactory = ({ IDL }) => { return IDL.Service({}); };
+export const idlFactory = ({ IDL }) => {
+  const SessionToken = IDL.Text;
+  const SimpleResult = IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text });
+  const UserId = IDL.Nat;
+  const Timestamp = IDL.Int;
+  const Role = IDL.Variant({ 'admin' : IDL.Null, 'user' : IDL.Null });
+  const UserInfo = IDL.Record({
+    'id' : UserId,
+    'username' : IDL.Text,
+    'createdAt' : Timestamp,
+    'role' : Role,
+  });
+  const CreateUserResult = IDL.Variant({ 'ok' : UserInfo, 'err' : IDL.Text });
+  const LoginResult = IDL.Variant({ 'ok' : SessionToken, 'err' : IDL.Text });
+  
+  return IDL.Service({
+    'changePassword' : IDL.Func(
+        [SessionToken, IDL.Text, IDL.Text],
+        [SimpleResult],
+        [],
+      ),
+    'createUser' : IDL.Func(
+        [SessionToken, IDL.Text, IDL.Text],
+        [CreateUserResult],
+        [],
+      ),
+    'deleteUser' : IDL.Func([SessionToken, IDL.Text], [SimpleResult], []),
+    'getCurrentUser' : IDL.Func([SessionToken], [IDL.Opt(UserInfo)], []),
+    'listUsers' : IDL.Func(
+        [SessionToken],
+        [IDL.Variant({ 'ok' : IDL.Vec(UserInfo), 'err' : IDL.Text })],
+        [],
+      ),
+    'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+    'logout' : IDL.Func([SessionToken], [SimpleResult], []),
+    'updateUser' : IDL.Func(
+        [SessionToken, IDL.Text, IDL.Text, IDL.Text],
+        [SimpleResult],
+        [],
+      ),
+  });
+};
 
 export const init = ({ IDL }) => { return []; };

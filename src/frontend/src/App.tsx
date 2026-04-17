@@ -12,14 +12,18 @@ import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronUp, Clock, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Role } from "./backend";
 import type { AdvancedFilters } from "./components/FilterBar";
 import { FilterBar } from "./components/FilterBar";
 import type { ExchangeId } from "./components/Header";
 import { Header } from "./components/Header";
 import { ScreenerTable } from "./components/ScreenerTable";
 import { StatsBar } from "./components/StatsBar";
+import { useAuth } from "./hooks/useAuth";
 import { useScreener } from "./hooks/useScreener";
 import type { CoinData } from "./hooks/useScreener";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { LoginPage } from "./pages/LoginPage";
 import { formatTime } from "./utils/format";
 
 const currentYear = new Date().getFullYear();
@@ -37,6 +41,9 @@ const DEFAULT_ADVANCED_FILTERS: AdvancedFilters = {
 };
 
 export default function App() {
+  const auth = useAuth();
+  const [showAdmin, setShowAdmin] = useState(false);
+
   const [selectedExchange, setSelectedExchange] =
     useState<ExchangeId>("binance");
 
@@ -56,9 +63,9 @@ export default function App() {
   }
 
   const [search, setSearch] = useState("");
-  const [signalFilter, setSignalFilter] = useState<"all" | "long" | "short">(
-    "all",
-  );
+  const [signalFilter, setSignalFilter] = useState<
+    "all" | "long" | "short" | "before-pump" | "before-dump"
+  >("all");
   // const [minVolume, setMinVolume] = useState(0); // MIN VOL — commented out; restore when needed
   const [minRsi, setMinRsi] = useState<number | null>(null);
   const [maxRsi, setMaxRsi] = useState<number | null>(null);
@@ -140,13 +147,69 @@ export default function App() {
     };
   }, [loading]);
 
+  const beforePumpCount = useMemo(
+    () =>
+      allCoins.filter(
+        (c) =>
+          c.signal === "NEUTRAL" &&
+          c.rsi14 >= 30 &&
+          c.rsi14 <= 55 &&
+          c.roc5m > 0 &&
+          c.volumeChangePct !== null &&
+          c.volumeChangePct > 100 &&
+          c.pctFromSma >= -8 &&
+          c.pctFromSma <= 2,
+      ).length,
+    [allCoins],
+  );
+
+  const beforeDumpCount = useMemo(
+    () =>
+      allCoins.filter(
+        (c) =>
+          c.signal === "NEUTRAL" &&
+          c.rsi14 >= 45 &&
+          c.rsi14 <= 70 &&
+          c.roc5m < 0 &&
+          c.volumeChangePct !== null &&
+          c.volumeChangePct > 100 &&
+          c.pctFromSma >= -2 &&
+          c.pctFromSma <= 8,
+      ).length,
+    [allCoins],
+  );
+
   const filteredCoins: CoinData[] = useMemo(() => {
     return allCoins.filter((c) => {
       const matchSearch = c.symbol.toLowerCase().includes(search.toLowerCase());
-      const matchSignal =
-        signalFilter === "all" ||
-        (signalFilter === "long" && c.signal === "LONG") ||
-        (signalFilter === "short" && c.signal === "SHORT");
+      let matchSignal = false;
+      if (signalFilter === "all") {
+        matchSignal = true;
+      } else if (signalFilter === "long") {
+        matchSignal = c.signal === "LONG";
+      } else if (signalFilter === "short") {
+        matchSignal = c.signal === "SHORT";
+      } else if (signalFilter === "before-pump") {
+        matchSignal =
+          c.signal === "NEUTRAL" &&
+          c.rsi14 >= 30 &&
+          c.rsi14 <= 55 &&
+          c.roc5m > 0 &&
+          c.volumeChangePct !== null &&
+          c.volumeChangePct > 100 &&
+          c.pctFromSma >= -8 &&
+          c.pctFromSma <= 2;
+      } else if (signalFilter === "before-dump") {
+        matchSignal =
+          c.signal === "NEUTRAL" &&
+          c.rsi14 >= 45 &&
+          c.rsi14 <= 70 &&
+          c.roc5m < 0 &&
+          c.volumeChangePct !== null &&
+          c.volumeChangePct > 100 &&
+          c.pctFromSma >= -2 &&
+          c.pctFromSma <= 8;
+      }
       // const matchVolume = minVolume <= 0 || c.volume24h >= minVolume; // MIN VOL — commented out; restore when needed
       const matchRsiMin = minRsi === null || c.rsi14 >= minRsi;
       const matchRsiMax = maxRsi === null || c.rsi14 <= maxRsi;
@@ -196,6 +259,40 @@ export default function App() {
     advancedFilters,
   ]);
 
+  // ── Auth guards ────────────────────────────────────────────────────────────
+
+  // Loading state while validating token
+  if (auth.isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in — show login page
+  if (!auth.user) {
+    return (
+      <>
+        <LoginPage auth={auth} />
+        <Toaster richColors position="bottom-right" />
+      </>
+    );
+  }
+
+  // Admin dashboard
+  if (showAdmin && auth.user.role === Role.admin) {
+    return (
+      <>
+        <AdminDashboard auth={auth} onBack={() => setShowAdmin(false)} />
+        <Toaster richColors position="bottom-right" />
+      </>
+    );
+  }
+
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header
@@ -203,6 +300,9 @@ export default function App() {
         onAdvancedFiltersChange={setAdvancedFilters}
         selectedExchange={selectedExchange}
         onExchangeChange={handleExchangeChange}
+        user={auth.user}
+        onLogout={auth.logout}
+        onOpenAdmin={() => setShowAdmin(true)}
       />
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-screen-2xl mx-auto w-full">
@@ -365,6 +465,50 @@ export default function App() {
             >
               🔴 Short
             </button>
+            <button
+              type="button"
+              data-ocid="screener.before-pump.tab"
+              onClick={() => {
+                setSignalFilter("before-pump");
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  volatilityEnabled: false,
+                  vol24hEnabled: false,
+                  volChangePctEnabled: false,
+                  rocPositiveEnabled: false,
+                  rocNegativeEnabled: false,
+                }));
+              }}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                signalFilter === "before-pump"
+                  ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              🟡 Before Pump ({beforePumpCount})
+            </button>
+            <button
+              type="button"
+              data-ocid="screener.before-dump.tab"
+              onClick={() => {
+                setSignalFilter("before-dump");
+                setAdvancedFilters((prev) => ({
+                  ...prev,
+                  volatilityEnabled: false,
+                  vol24hEnabled: false,
+                  volChangePctEnabled: false,
+                  rocPositiveEnabled: false,
+                  rocNegativeEnabled: false,
+                }));
+              }}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                signalFilter === "before-dump"
+                  ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              🟠 Before Dump ({beforeDumpCount})
+            </button>
           </div>
 
           {/* Divider */}
@@ -498,6 +642,7 @@ export default function App() {
             loading={loading}
             error={error}
             onRetry={refresh}
+            filterMode={signalFilter}
           />
         )}
       </main>

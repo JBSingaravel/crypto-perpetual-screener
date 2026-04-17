@@ -89,10 +89,299 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface backendInterface {
+export type UserId = bigint;
+export type Timestamp = bigint;
+export type CreateUserResult = {
+    __kind__: "ok";
+    ok: UserInfo;
+} | {
+    __kind__: "err";
+    err: string;
+};
+export type SimpleResult = {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: string;
+};
+export type SessionToken = string;
+export type LoginResult = {
+    __kind__: "ok";
+    ok: SessionToken;
+} | {
+    __kind__: "err";
+    err: string;
+};
+export interface UserInfo {
+    id: UserId;
+    username: string;
+    createdAt: Timestamp;
+    role: Role;
 }
+export enum Role {
+    admin = "admin",
+    user = "user"
+}
+export interface backendInterface {
+    changePassword(token: SessionToken, oldPassword: string, newPassword: string): Promise<SimpleResult>;
+    createUser(adminToken: SessionToken, username: string, password: string): Promise<CreateUserResult>;
+    deleteUser(adminToken: SessionToken, username: string): Promise<SimpleResult>;
+    getCurrentUser(token: SessionToken): Promise<UserInfo | null>;
+    listUsers(adminToken: SessionToken): Promise<{
+        __kind__: "ok";
+        ok: Array<UserInfo>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    login(username: string, password: string): Promise<LoginResult>;
+    logout(token: SessionToken): Promise<SimpleResult>;
+    updateUser(adminToken: SessionToken, username: string, newUsername: string, newPassword: string): Promise<SimpleResult>;
+}
+import type { CreateUserResult as _CreateUserResult, LoginResult as _LoginResult, Role as _Role, SessionToken as _SessionToken, SimpleResult as _SimpleResult, Timestamp as _Timestamp, UserId as _UserId, UserInfo as _UserInfo } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async changePassword(arg0: SessionToken, arg1: string, arg2: string): Promise<SimpleResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.changePassword(arg0, arg1, arg2);
+                return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.changePassword(arg0, arg1, arg2);
+            return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async createUser(arg0: SessionToken, arg1: string, arg2: string): Promise<CreateUserResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createUser(arg0, arg1, arg2);
+                return from_candid_CreateUserResult_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createUser(arg0, arg1, arg2);
+            return from_candid_CreateUserResult_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async deleteUser(arg0: SessionToken, arg1: string): Promise<SimpleResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteUser(arg0, arg1);
+                return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteUser(arg0, arg1);
+            return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCurrentUser(arg0: SessionToken): Promise<UserInfo | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCurrentUser(arg0);
+                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCurrentUser(arg0);
+            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async listUsers(arg0: SessionToken): Promise<{
+        __kind__: "ok";
+        ok: Array<UserInfo>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listUsers(arg0);
+                return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listUsers(arg0);
+            return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async login(arg0: string, arg1: string): Promise<LoginResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.login(arg0, arg1);
+                return from_candid_LoginResult_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.login(arg0, arg1);
+            return from_candid_LoginResult_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async logout(arg0: SessionToken): Promise<SimpleResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.logout(arg0);
+                return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.logout(arg0);
+            return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateUser(arg0: SessionToken, arg1: string, arg2: string, arg3: string): Promise<SimpleResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateUser(arg0, arg1, arg2, arg3);
+                return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateUser(arg0, arg1, arg2, arg3);
+            return from_candid_SimpleResult_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+}
+function from_candid_CreateUserResult_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CreateUserResult): CreateUserResult {
+    return from_candid_variant_n4(_uploadFile, _downloadFile, value);
+}
+function from_candid_LoginResult_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LoginResult): LoginResult {
+    return from_candid_variant_n13(_uploadFile, _downloadFile, value);
+}
+function from_candid_Role_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Role): Role {
+    return from_candid_variant_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_SimpleResult_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SimpleResult): SimpleResult {
+    return from_candid_variant_n2(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserInfo_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserInfo): UserInfo {
+    return from_candid_record_n6(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserInfo]): UserInfo | null {
+    return value.length === 0 ? null : from_candid_UserInfo_n5(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: _UserId;
+    username: string;
+    createdAt: _Timestamp;
+    role: _Role;
+}): {
+    id: UserId;
+    username: string;
+    createdAt: Timestamp;
+    role: Role;
+} {
+    return {
+        id: value.id,
+        username: value.username,
+        createdAt: value.createdAt,
+        role: from_candid_Role_n7(_uploadFile, _downloadFile, value.role)
+    };
+}
+function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: Array<_UserInfo>;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: Array<UserInfo>;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: from_candid_vec_n11(_uploadFile, _downloadFile, value.ok)
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: _SessionToken;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: SessionToken;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: null;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: _UserInfo;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: UserInfo;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: from_candid_UserInfo_n5(_uploadFile, _downloadFile, value.ok)
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    admin: null;
+} | {
+    user: null;
+}): Role {
+    return "admin" in value ? Role.admin : "user" in value ? Role.user : value;
+}
+function from_candid_vec_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UserInfo>): Array<UserInfo> {
+    return value.map((x)=>from_candid_UserInfo_n5(_uploadFile, _downloadFile, x));
 }
 export interface CreateActorOptions {
     agent?: Agent;

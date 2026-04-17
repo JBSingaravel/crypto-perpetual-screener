@@ -1,4 +1,6 @@
-import { Activity, ChevronDown } from "lucide-react";
+import { Activity, ChevronDown, LogOut, Settings } from "lucide-react";
+import { Role } from "../backend";
+import type { UserInfo } from "../hooks/useAuth";
 import type { AdvancedFilters } from "./FilterBar";
 
 export type ExchangeId = "binance" | "bingx" | "mexc" | "bitget" | "coinex";
@@ -21,6 +23,9 @@ interface HeaderProps {
   onAdvancedFiltersChange: (f: AdvancedFilters) => void;
   selectedExchange: ExchangeId;
   onExchangeChange: (exchange: ExchangeId) => void;
+  user: UserInfo;
+  onLogout: () => Promise<void>;
+  onOpenAdmin: () => void;
 }
 
 export function Header({
@@ -28,13 +33,16 @@ export function Header({
   onAdvancedFiltersChange,
   selectedExchange,
   onExchangeChange,
+  user,
+  onLogout,
+  onOpenAdmin,
 }: HeaderProps) {
   function setAdv(patch: Partial<AdvancedFilters>) {
     onAdvancedFiltersChange({ ...advancedFilters, ...patch });
   }
 
-  const currentExchangeLabel =
-    EXCHANGES.find((e) => e.id === selectedExchange)?.label ?? "Binance";
+  const initials = user.username.slice(0, 2).toUpperCase();
+  const isAdmin = user.role === Role.admin;
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 border-b border-border bg-card shadow-card gap-4">
@@ -77,17 +85,17 @@ export function Header({
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Pair:</span>
           <span className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-full border border-border">
-            USDT Perpetual
+            USDT Perp
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Price Filter:</span>
+          <span className="text-xs text-muted-foreground">Price:</span>
           <span className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-full border border-border">
             &lt; $4.00
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Timeframe:</span>
+          <span className="text-xs text-muted-foreground">TF:</span>
           <span className="text-xs font-medium bg-secondary px-2 py-0.5 rounded-full border border-border">
             3m
           </span>
@@ -139,14 +147,14 @@ export function Header({
                 : "Perpetual filter OFF — click to enable"
             }
           >
-            {advancedFilters.perpetualEnabled ? "✓ Perpetual" : "Perpetual"}
+            {advancedFilters.perpetualEnabled ? "✓ Perp" : "Perp"}
           </button>
         </div>
       </div>
 
-      {/* Right: Exchange label (mobile) + Live indicator + user badge */}
-      <div className="flex items-center gap-3 shrink-0">
-        {/* Mobile exchange label */}
+      {/* Right: Exchange (mobile) + Live + User + Admin + Logout */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Mobile exchange selector */}
         <div className="sm:hidden">
           <select
             data-ocid="screener.exchange.select.mobile"
@@ -162,16 +170,53 @@ export function Header({
             ))}
           </select>
         </div>
+
+        {/* Live indicator */}
         <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
           <span>Live</span>
         </div>
+
+        {/* Admin Dashboard button — visible to admin only */}
+        {isAdmin && (
+          <button
+            type="button"
+            data-ocid="header.admin.button"
+            onClick={onOpenAdmin}
+            title="Admin Dashboard"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-md hover:bg-secondary"
+            aria-label="Open Admin Dashboard"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="hidden md:inline">Admin</span>
+          </button>
+        )}
+
+        {/* Username badge */}
         <div
-          className="w-7 h-7 rounded-full bg-secondary border border-border flex items-center justify-center text-xs font-bold text-foreground"
-          title={`Exchange: ${currentExchangeLabel}`}
+          className="flex items-center gap-1.5 bg-secondary border border-border rounded-full pl-1 pr-2.5 py-0.5"
+          title={`Logged in as ${user.username}`}
         >
-          IN
+          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+            {initials}
+          </div>
+          <span className="hidden sm:inline text-xs font-medium text-foreground">
+            {user.username}
+          </span>
         </div>
+
+        {/* Logout button */}
+        <button
+          type="button"
+          data-ocid="header.logout.button"
+          onClick={onLogout}
+          title="Sign out"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded-md hover:bg-destructive/10"
+          aria-label="Sign out"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden md:inline">Logout</span>
+        </button>
       </div>
     </header>
   );

@@ -10,7 +10,40 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface _SERVICE {}
+export type CreateUserResult = { 'ok' : UserInfo } |
+  { 'err' : string };
+export type LoginResult = { 'ok' : SessionToken } |
+  { 'err' : string };
+export type Role = { 'admin' : null } |
+  { 'user' : null };
+export type SessionToken = string;
+export type SimpleResult = { 'ok' : null } |
+  { 'err' : string };
+export type Timestamp = bigint;
+export type UserId = bigint;
+export interface UserInfo {
+  'id' : UserId,
+  'username' : string,
+  'createdAt' : Timestamp,
+  'role' : Role,
+}
+export interface _SERVICE {
+  'changePassword' : ActorMethod<[SessionToken, string, string], SimpleResult>,
+  'createUser' : ActorMethod<[SessionToken, string, string], CreateUserResult>,
+  'deleteUser' : ActorMethod<[SessionToken, string], SimpleResult>,
+  'getCurrentUser' : ActorMethod<[SessionToken], [] | [UserInfo]>,
+  'listUsers' : ActorMethod<
+    [SessionToken],
+    { 'ok' : Array<UserInfo> } |
+      { 'err' : string }
+  >,
+  'login' : ActorMethod<[string, string], LoginResult>,
+  'logout' : ActorMethod<[SessionToken], SimpleResult>,
+  'updateUser' : ActorMethod<
+    [SessionToken, string, string, string],
+    SimpleResult
+  >,
+}
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
 export declare const idlFactory: IDL.InterfaceFactory;

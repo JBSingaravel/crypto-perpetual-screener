@@ -1,2 +1,47 @@
+type UserInfo = 
+ record {
+   createdAt: Timestamp;
+   id: UserId;
+   role: Role;
+   username: text;
+ };
+type UserId = nat;
+type Timestamp = int;
+type SimpleResult = 
+ variant {
+   err: text;
+   ok;
+ };
+type SessionToken = text;
+type Role = 
+ variant {
+   admin;
+   user;
+ };
+type LoginResult = 
+ variant {
+   err: text;
+   ok: SessionToken;
+ };
+type CreateUserResult = 
+ variant {
+   err: text;
+   ok: UserInfo;
+ };
 service : {
+  changePassword: (token: SessionToken, oldPassword: text, newPassword:
+   text) -> (SimpleResult);
+  createUser: (adminToken: SessionToken, username: text, password: text) ->
+   (CreateUserResult);
+  deleteUser: (adminToken: SessionToken, username: text) -> (SimpleResult);
+  getCurrentUser: (token: SessionToken) -> (opt UserInfo);
+  listUsers: (adminToken: SessionToken) ->
+   (variant {
+      err: text;
+      ok: vec UserInfo;
+    });
+  login: (username: text, password: text) -> (LoginResult);
+  logout: (token: SessionToken) -> (SimpleResult);
+  updateUser: (adminToken: SessionToken, username: text, newUsername: 
+   text, newPassword: text) -> (SimpleResult);
 }

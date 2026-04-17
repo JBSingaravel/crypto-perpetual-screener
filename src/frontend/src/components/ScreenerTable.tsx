@@ -65,6 +65,62 @@ function computeScore(coin: CoinData): number {
   return Math.round(rsiPts + volPts + rocPts + smaPts);
 }
 
+function computeBeforePumpScore(coin: CoinData): number {
+  // RSI closeness to 40 (25 pts)
+  let rsiPts = 0;
+  const rsi = coin.rsi14;
+  if (rsi >= 35 && rsi <= 50) rsiPts = 25;
+  else if (rsi > 50 && rsi <= 55) rsiPts = 15;
+
+  // ROC 5m positive (25 pts)
+  const rocPts = coin.roc5m > 0 ? 25 : 0;
+
+  // Vol Change % (25 pts)
+  let volPts = 0;
+  const vc = coin.volumeChangePct;
+  if (vc !== null) {
+    if (vc > 200) volPts = 25;
+    else if (vc > 100) volPts = 15;
+  }
+
+  // % from SMA: closest to crossover from below (-3 to 0) = best (25 pts)
+  let smaPts = 0;
+  const pct = coin.pctFromSma;
+  if (pct >= -3 && pct <= 0) smaPts = 25;
+  else if (pct > 0 && pct <= 2) smaPts = 15;
+  else if (pct < -3 && pct >= -8) smaPts = 8;
+
+  return Math.round(rsiPts + rocPts + volPts + smaPts);
+}
+
+function computeBeforeDumpScore(coin: CoinData): number {
+  // RSI closeness to 60 (25 pts)
+  let rsiPts = 0;
+  const rsi = coin.rsi14;
+  if (rsi >= 50 && rsi <= 65) rsiPts = 25;
+  else if (rsi >= 45 && rsi < 50) rsiPts = 15;
+
+  // ROC 5m negative (25 pts)
+  const rocPts = coin.roc5m < 0 ? 25 : 0;
+
+  // Vol Change % (25 pts)
+  let volPts = 0;
+  const vc = coin.volumeChangePct;
+  if (vc !== null) {
+    if (vc > 200) volPts = 25;
+    else if (vc > 100) volPts = 15;
+  }
+
+  // % from SMA: closest to crossover from above (0 to +3) = best (25 pts)
+  let smaPts = 0;
+  const pct = coin.pctFromSma;
+  if (pct >= 0 && pct <= 3) smaPts = 25;
+  else if (pct < 0 && pct >= -2) smaPts = 15;
+  else if (pct > 3 && pct <= 8) smaPts = 8;
+
+  return Math.round(rsiPts + rocPts + volPts + smaPts);
+}
+
 // ─────────────────────────────────────────────
 // Types & sort key
 // ─────────────────────────────────────────────
@@ -93,6 +149,7 @@ interface ScreenerTableProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  filterMode?: "all" | "long" | "short" | "before-pump" | "before-dump";
 }
 
 // ─────────────────────────────────────────────
@@ -116,12 +173,15 @@ function SortIcon({
 function RsiCell({ value }: { value: number }) {
   if (value === 0)
     return <span className="font-mono text-sm text-muted-foreground">—</span>;
+  // Priority: overbought (>=70) → orange, oversold (<=30) → cyan, above 50 → green, below 50 → red
   const color =
-    value <= 30
-      ? "text-success"
-      : value >= 70
-        ? "text-destructive"
-        : "text-foreground";
+    value >= 70
+      ? "text-orange-500"
+      : value <= 30
+        ? "text-cyan-400"
+        : value >= 50
+          ? "text-green-500"
+          : "text-red-500";
   return (
     <span className={`font-mono text-sm font-medium ${color}`}>
       {Math.round(value)}
@@ -194,18 +254,32 @@ function SignalBadge({ signal }: { signal: CoinData["signal"] }) {
 function RankCell({
   coin,
   rank,
+  filterMode,
 }: {
   coin: CoinData;
   rank: number | null;
+  filterMode?: string;
 }) {
-  if (coin.signal === "NEUTRAL" || rank === null) {
+  const isPreSignal =
+    filterMode === "before-pump" || filterMode === "before-dump";
+
+  if (coin.signal === "NEUTRAL" && !isPreSignal) {
+    return <span className="font-mono text-sm text-muted-foreground">—</span>;
+  }
+  if (rank === null) {
     return <span className="font-mono text-sm text-muted-foreground">—</span>;
   }
 
-  const isLong = coin.signal === "LONG";
-  const badgeBg = isLong
-    ? "bg-success/15 text-success border-success/30"
-    : "bg-destructive/15 text-destructive border-destructive/30";
+  let badgeBg = "";
+  if (coin.signal === "LONG") {
+    badgeBg = "bg-success/15 text-success border-success/30";
+  } else if (coin.signal === "SHORT") {
+    badgeBg = "bg-destructive/15 text-destructive border-destructive/30";
+  } else if (filterMode === "before-pump") {
+    badgeBg = "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+  } else {
+    badgeBg = "bg-orange-500/15 text-orange-400 border-orange-500/30";
+  }
 
   return (
     <span
@@ -219,16 +293,29 @@ function RankCell({
 function ScoreCell({
   coin,
   score,
+  filterMode,
 }: {
   coin: CoinData;
   score: number;
+  filterMode?: string;
 }) {
-  if (coin.signal === "NEUTRAL") {
+  const isPreSignal =
+    filterMode === "before-pump" || filterMode === "before-dump";
+
+  if (coin.signal === "NEUTRAL" && !isPreSignal) {
     return <span className="font-mono text-sm text-muted-foreground">—</span>;
   }
 
-  const isLong = coin.signal === "LONG";
-  const scoreColor = isLong ? "text-success" : "text-destructive";
+  let scoreColor = "";
+  if (coin.signal === "LONG") {
+    scoreColor = "text-success";
+  } else if (coin.signal === "SHORT") {
+    scoreColor = "text-destructive";
+  } else if (filterMode === "before-pump") {
+    scoreColor = "text-yellow-400";
+  } else {
+    scoreColor = "text-orange-400";
+  }
 
   return (
     <span className={`font-mono text-sm font-bold ${scoreColor}`}>{score}</span>
@@ -251,6 +338,7 @@ export function ScreenerTable({
   loading,
   error,
   onRetry,
+  filterMode = "all",
 }: ScreenerTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("signal");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -268,10 +356,16 @@ export function ScreenerTable({
   const scoreMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const coin of coins) {
-      map.set(coin.symbol, computeScore(coin));
+      if (filterMode === "before-pump") {
+        map.set(coin.symbol, computeBeforePumpScore(coin));
+      } else if (filterMode === "before-dump") {
+        map.set(coin.symbol, computeBeforeDumpScore(coin));
+      } else {
+        map.set(coin.symbol, computeScore(coin));
+      }
     }
     return map;
-  }, [coins]);
+  }, [coins, filterMode]);
 
   // Derive ranks: among LONGs sorted by score desc → rank 1 is best
   const longRankMap = useMemo(() => {
@@ -296,13 +390,33 @@ export function ScreenerTable({
     return map;
   }, [coins, scoreMap]);
 
+  // For before-pump / before-dump: rank all NEUTRAL coins by their pre-signal score
+  const neutralRankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (filterMode !== "before-pump" && filterMode !== "before-dump")
+      return map;
+    const neutrals = coins
+      .filter((c) => c.signal === "NEUTRAL")
+      .sort(
+        (a, b) => (scoreMap.get(b.symbol) ?? 0) - (scoreMap.get(a.symbol) ?? 0),
+      );
+    neutrals.forEach((c, i) => map.set(c.symbol, i + 1));
+    return map;
+  }, [coins, scoreMap, filterMode]);
+
   const getRank = useCallback(
     (coin: CoinData): number | null => {
       if (coin.signal === "LONG") return longRankMap.get(coin.symbol) ?? null;
       if (coin.signal === "SHORT") return shortRankMap.get(coin.symbol) ?? null;
+      if (
+        coin.signal === "NEUTRAL" &&
+        (filterMode === "before-pump" || filterMode === "before-dump")
+      ) {
+        return neutralRankMap.get(coin.symbol) ?? null;
+      }
       return null;
     },
-    [longRankMap, shortRankMap],
+    [longRankMap, shortRankMap, neutralRankMap, filterMode],
   );
 
   const sorted = useMemo(() => {
@@ -522,7 +636,11 @@ export function ScreenerTable({
                         className="p-2 align-middle whitespace-nowrap"
                         data-ocid={`screener.rank.${idx + 1}`}
                       >
-                        <RankCell coin={coin} rank={rank} />
+                        <RankCell
+                          coin={coin}
+                          rank={rank}
+                          filterMode={filterMode}
+                        />
                       </td>
 
                       {/* Price */}
@@ -602,7 +720,11 @@ export function ScreenerTable({
                         className="p-2 align-middle whitespace-nowrap"
                         data-ocid={`screener.score.${idx + 1}`}
                       >
-                        <ScoreCell coin={coin} score={score} />
+                        <ScoreCell
+                          coin={coin}
+                          score={score}
+                          filterMode={filterMode}
+                        />
                       </td>
 
                       {/* Action */}
