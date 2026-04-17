@@ -26,6 +26,8 @@ export function formatTime(date: Date): string {
   });
 }
 
+/** Returns "BTCUSDT.P" format from "BTCUSDT" */
 export function getDisplaySymbol(symbol: string): string {
-  return symbol.replace("USDT", "");
+  // Remove USDT suffix and append .P for perpetual convention
+  return `${symbol.replace(/USDT$/, "")}USDT.P`;
 }
